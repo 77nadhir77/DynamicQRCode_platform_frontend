@@ -1,8 +1,8 @@
-import axios from "axios";
+import axios, { InternalAxiosRequestConfig, AxiosInstance } from 'axios'
 import { useNavigate } from "react-router-dom";
 import { useMemo } from "react";
 
-const useAxios = () => {
+const useAxios = ():AxiosInstance => {
   const baseURL = import.meta.env.VITE_APP_BACKEND_URL;
 
   const AxiosInstance = useMemo(() => {

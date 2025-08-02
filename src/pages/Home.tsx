@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import useAxios from "../utils/useAxios";
+import Code from "@/utils/Code";
 
 const Home = () => {
-  const [codes, setCodes] = useState([]);
+  const [codes, setCodes] = useState<Code[]>();
   const api = useAxios();
 
   useEffect(() => {
