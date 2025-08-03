@@ -1,7 +1,7 @@
 export default interface Code {
     id: number;
     link: string;
-    iamge: string;
+    image: string;
     createdAt: Date;
     updatedAt: Date;
 }
