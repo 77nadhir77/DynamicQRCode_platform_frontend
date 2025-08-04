@@ -1,12 +1,12 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
-import codeDetails from "./pages/codeDetails";
+import CodeDetails from "./pages/codeDetails";
 const App = () => {
   return <Router>
     <Routes>
-      <Route path="/" element={<Home />}  />
-      <Route path="/qrcode/:id" element={<codeDetails />} />
+      <Route path="/" element={<Home />} />
+      <Route path="/qrcode/:id" element={<CodeDetails />} />
     </Routes>
   </Router>
 };

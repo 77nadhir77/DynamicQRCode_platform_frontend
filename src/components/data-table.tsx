@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import {
   ColumnDef,
   flexRender,
+  ColumnFiltersState,
   getCoreRowModel,
   getPaginationRowModel,
+  getFilteredRowModel,
   useReactTable,
 } from '@tanstack/react-table';
 
@@ -15,7 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Button } from '@/components/ui/button'; // if you're using shadcn button
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input'; // if you're using shadcn button
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -27,6 +30,16 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Label } from './ui/label';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -34,6 +47,12 @@ interface DataTableProps<TData, TValue> {
   onDeleteSelected: (selectedIds: number[]) => void;
   isDeleting: boolean;
   onResetSelectionRequest?: (resetFn: () => void) => void;
+  open: boolean;
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  newLink: string;
+  setNewLink: React.Dispatch<React.SetStateAction<string>>;
+  isCreating: boolean;
+  handleCreate: () => void;
 }
 
 export function DataTable<TData extends { id: number }, TValue>({
@@ -42,19 +61,29 @@ export function DataTable<TData extends { id: number }, TValue>({
   onDeleteSelected,
   isDeleting,
   onResetSelectionRequest,
+  open,
+  setOpen,
+  newLink,
+  setNewLink,
+  isCreating,
+  handleCreate,
 }: DataTableProps<TData, TValue>) {
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
   const table = useReactTable({
     data,
     columns,
+    onColumnFiltersChange: setColumnFilters,
+    getFilteredRowModel: getFilteredRowModel(),
     state: {
       pagination: {
         pageSize,
         pageIndex,
       },
+      columnFilters,
     },
     onPaginationChange: (updater) => {
       const next =
@@ -78,43 +107,56 @@ export function DataTable<TData extends { id: number }, TValue>({
 
   return (
     <div className="space-y-4">
-      {/* Delete Button and Dialog */}
-      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <AlertDialogTrigger asChild>
-          <Button
-            variant="destructive"
-            disabled={table.getSelectedRowModel().rows.length === 0}
-          >
-            {isDeleting ? 'Deleting...' : 'Delete Selected'}(
-            {table.getSelectedRowModel().rows.length})
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete{' '}
-              {table.getSelectedRowModel().rows.length} item(s).
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => table.resetRowSelection()}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                const selectedIds = table
-                  .getSelectedRowModel()
-                  .rows.map((row) => row.original.id);
-
-                onDeleteSelected(selectedIds);
-                setDialogOpen(false);
-              }}
-            >
-              Confirm Deletion
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
+      <div className="flex justify-between items-center">
+        <div className="w-full">
+          <Input
+            type="number"
+            placeholder="Rechercher par ID..."
+            value={table.getColumn('id')?.getFilterValue()?.toString() ?? ''}
+            onChange={(event) => {
+              const value = event.target.value;
+              table
+                .getColumn('id')
+                ?.setFilterValue(value ? Number(value) : undefined);
+            }}
+            className="max-w-sm w-full"
+          />
+        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button>➕ Ajouter un QR Code</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Creation d'un QR Code</DialogTitle>
+              <DialogDescription>
+                Enter le lien de redirection du QR Code.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="link" className="text-right">
+                  Lien de redirection
+                </Label>
+                <Input
+                  id="link"
+                  value={newLink}
+                  onChange={(e) => setNewLink(e.target.value)}
+                  className="col-span-3"
+                  placeholder="https://example.com"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              {isCreating ? (
+                <Button disabled>Chargment ...</Button>
+              ) : (
+                <Button onClick={handleCreate}>Ajouter</Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
       <div className="flex flex-2/3 flex-col overflow-hidden rounded-md border">
         <Table>
           <TableHeader>
@@ -167,7 +209,7 @@ export function DataTable<TData extends { id: number }, TValue>({
       {/* Pagination Controls */}
       <div className="flex items-center justify-between px-2">
         <div className="flex items-center space-x-2">
-          <span>Rows per page:</span>
+          <span>Lignes par page:</span>
           <select
             value={pageSize}
             onChange={(e) => {
@@ -190,10 +232,10 @@ export function DataTable<TData extends { id: number }, TValue>({
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Previous
+            Precédent
           </Button>
           <span>
-            Page {table.getState().pagination.pageIndex + 1} of{' '}
+            Page {table.getState().pagination.pageIndex + 1} sur{' '}
             {table.getPageCount()}
           </span>
           <Button
@@ -201,10 +243,48 @@ export function DataTable<TData extends { id: number }, TValue>({
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Next
+            Suivant
           </Button>
         </div>
       </div>
+      {/* Delete Button and Dialog */}
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="destructive"
+            disabled={table.getSelectedRowModel().rows.length === 0}
+          >
+            {isDeleting ? 'Supression en cours...' : 'supprimer la selection'}(
+            {table.getSelectedRowModel().rows.length})
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible et supprimera{' '}
+              {table.getSelectedRowModel().rows.length} élément(s).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => table.resetRowSelection()}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const selectedIds = table
+                  .getSelectedRowModel()
+                  .rows.map((row) => row.original.id);
+
+                onDeleteSelected(selectedIds);
+                setDialogOpen(false);
+              }}
+            >
+              Confirmer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

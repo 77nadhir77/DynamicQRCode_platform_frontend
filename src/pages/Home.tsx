@@ -17,6 +17,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Link } from 'react-router-dom';
+import { Eye } from 'lucide-react';
 
 const columnHelper = createColumnHelper<Code>();
 
@@ -46,6 +48,9 @@ const columns = [
   columnHelper.accessor('id', {
     header: 'ID',
     cell: (info) => info.getValue(),
+    filterFn: (row, columnId, filterValue) => {
+      return String(row.getValue(columnId)).includes(String(filterValue));
+    },
   }),
   columnHelper.accessor('link', {
     header: 'url',
@@ -63,11 +68,27 @@ const columns = [
     header: 'date de modification',
     cell: (info) => info.getValue(),
   }),
+  columnHelper.display({
+    id: 'details',
+    header: 'Détails',
+    cell: ({ row }) => (
+      <Link to={`/qrcode/${row.original.id}`}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="cursor-pointer bg-green-500 p-2"
+        >
+          <Eye className="text-white h-4 w-4 cursor-pointer" />
+        </Button>
+      </Link>
+    ),
+  }),
 ];
 
 const Home = () => {
   const [codes, setCodes] = useState<Code[]>([]);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [isCreating, setIsCreating] = useState<boolean>(false);
   const resetSelectionRef = useRef<() => void>(() => {});
 
   const api = useAxios();
@@ -76,6 +97,7 @@ const Home = () => {
 
   const handleCreate = () => {
     if (!newLink) return;
+    setIsCreating(true);
     api
       .post('/api/create', { redirectUrl: newLink })
       .then(() => {
@@ -85,6 +107,9 @@ const Home = () => {
       })
       .catch((err) => {
         console.error('Failed to create QR Code', err);
+      })
+      .finally(() => {
+        setIsCreating(false);
       });
   };
 
@@ -126,38 +151,6 @@ const Home = () => {
 
   return (
     <div className="p-10 w-full h-full flex-col justify-center items-center gap-4">
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button className="mb-4">➕ Add QR Code</Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Create QR Code</DialogTitle>
-            <DialogDescription>
-              Enter the URL you want users to be redirected to after scanning
-              the QR code.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="link" className="text-right">
-                Redirect URL
-              </Label>
-              <Input
-                id="link"
-                value={newLink}
-                onChange={(e) => setNewLink(e.target.value)}
-                className="col-span-3"
-                placeholder="https://example.com"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={handleCreate}>Create</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <DataTable<Code, any>
         data={codes}
         columns={columns}
@@ -166,6 +159,12 @@ const Home = () => {
         onResetSelectionRequest={(resetFn) => {
           resetSelectionRef.current = resetFn;
         }}
+        open={open}
+        setOpen={setOpen}
+        newLink={newLink}
+        setNewLink={setNewLink}
+        isCreating={isCreating}
+        handleCreate={handleCreate}
       />
     </div>
   );
