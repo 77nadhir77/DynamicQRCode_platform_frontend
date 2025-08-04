@@ -69,7 +69,7 @@ export function DataTable<TData extends { id: number }, TValue>({
   handleCreate,
 }: DataTableProps<TData, TValue>) {
   const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
@@ -106,9 +106,9 @@ export function DataTable<TData extends { id: number }, TValue>({
   }, [table, onResetSelectionRequest]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="w-full">
+    <div className="space-y-6 w-full">
+      <div className="justify-between items-center flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="w-full ">
           <Input
             type="number"
             placeholder="Rechercher par ID..."
@@ -119,14 +119,14 @@ export function DataTable<TData extends { id: number }, TValue>({
                 .getColumn('id')
                 ?.setFilterValue(value ? Number(value) : undefined);
             }}
-            className="max-w-sm w-full"
+            className="sm:max-w-sm w-full"
           />
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>➕ Ajouter un QR Code</Button>
+            <Button className="w-full sm:w-auto">➕ Ajouter un QR Code</Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="w-[90vw] max-w-md">
             <DialogHeader>
               <DialogTitle>Creation d'un QR Code</DialogTitle>
               <DialogDescription>
@@ -157,8 +157,8 @@ export function DataTable<TData extends { id: number }, TValue>({
           </DialogContent>
         </Dialog>
       </div>
-      <div className="flex flex-2/3 flex-col overflow-hidden rounded-md border">
-        <Table>
+      <div className="flex flex-2/3 flex-col overflow-x-auto rounded-md border">
+        <Table className="min-w-full text-sm">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -207,16 +207,16 @@ export function DataTable<TData extends { id: number }, TValue>({
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex items-center justify-between px-2">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-2">
         <div className="flex items-center space-x-2">
-          <span>Lignes par page:</span>
+          <span className="text-sm">Lignes par page:</span>
           <select
             value={pageSize}
             onChange={(e) => {
               table.setPageSize(Number(e.target.value));
               setPageSize(Number(e.target.value));
             }}
-            className="border rounded px-2 py-1"
+            className="border rounded px-2 py-1 text-sm"
           >
             {[5, 10, 20, 30].map((size) => (
               <option key={size} value={size}>
@@ -232,9 +232,9 @@ export function DataTable<TData extends { id: number }, TValue>({
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Precédent
+            Précédent
           </Button>
-          <span>
+          <span className="text-sm">
             Page {table.getState().pagination.pageIndex + 1} sur{' '}
             {table.getPageCount()}
           </span>
@@ -247,18 +247,20 @@ export function DataTable<TData extends { id: number }, TValue>({
           </Button>
         </div>
       </div>
+
       {/* Delete Button and Dialog */}
       <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <AlertDialogTrigger asChild>
           <Button
             variant="destructive"
+            className="w-full sm:w-auto"
             disabled={table.getSelectedRowModel().rows.length === 0}
           >
-            {isDeleting ? 'Supression en cours...' : 'supprimer la selection'}(
+            {isDeleting ? 'Suppression...' : 'Supprimer la sélection'} (
             {table.getSelectedRowModel().rows.length})
           </Button>
         </AlertDialogTrigger>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[90vw] max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -275,7 +277,6 @@ export function DataTable<TData extends { id: number }, TValue>({
                 const selectedIds = table
                   .getSelectedRowModel()
                   .rows.map((row) => row.original.id);
-
                 onDeleteSelected(selectedIds);
                 setDialogOpen(false);
               }}

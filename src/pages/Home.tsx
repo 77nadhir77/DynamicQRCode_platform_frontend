@@ -55,18 +55,18 @@ const columns = [
   columnHelper.accessor('link', {
     header: 'url',
     cell: (info) => (
-      <div className="w-[200px] overflow-hidden whitespace-nowrap text-ellipsis text-left">
+      <div className="w-full max-w-[200px] sm:max-w-[250px] md:max-w-[300px] overflow-hidden whitespace-nowrap text-ellipsis text-left">
         {info.getValue()}
       </div>
     ),
   }),
   columnHelper.accessor('createdAt', {
     header: 'date de création',
-    cell: (info) => info.getValue(),
+    cell: (info) => new Date(info.getValue()).toLocaleString(),
   }),
   columnHelper.accessor('updatedAt', {
     header: 'date de modification',
-    cell: (info) => info.getValue(),
+    cell: (info) => new Date(info.getValue()).toLocaleString(),
   }),
   columnHelper.display({
     id: 'details',
@@ -75,10 +75,10 @@ const columns = [
       <Link to={`/qrcode/${row.original.id}`}>
         <Button
           variant="outline"
-          size="sm"
-          className="cursor-pointer bg-green-500 p-2"
+          size="icon"
+          className="bg-green-500 hover:bg-green-600 text-white rounded p-2"
         >
-          <Eye className="text-white h-4 w-4 cursor-pointer" />
+          <Eye className="h-4 w-4" />
         </Button>
       </Link>
     ),
@@ -150,22 +150,24 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="p-10 w-full h-full flex-col justify-center items-center gap-4">
-      <DataTable<Code, any>
-        data={codes}
-        columns={columns}
-        onDeleteSelected={handleDeleteSelected}
-        isDeleting={isDeleting}
-        onResetSelectionRequest={(resetFn) => {
-          resetSelectionRef.current = resetFn;
-        }}
-        open={open}
-        setOpen={setOpen}
-        newLink={newLink}
-        setNewLink={setNewLink}
-        isCreating={isCreating}
-        handleCreate={handleCreate}
-      />
+    <div className="px-4 py-6 md:px-10 w-full h-full flex flex-col justify-center items-center gap-4">
+      <div className="w-full max-w-[1200px]">
+        <DataTable<Code, any>
+          data={codes}
+          columns={columns}
+          onDeleteSelected={handleDeleteSelected}
+          isDeleting={isDeleting}
+          onResetSelectionRequest={(resetFn) => {
+            resetSelectionRef.current = resetFn;
+          }}
+          open={open}
+          setOpen={setOpen}
+          newLink={newLink}
+          setNewLink={setNewLink}
+          isCreating={isCreating}
+          handleCreate={handleCreate}
+        />
+      </div>
     </div>
   );
 };
