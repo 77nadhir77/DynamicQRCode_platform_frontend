@@ -15,7 +15,7 @@ const useAxios = (): AxiosInstance => {
   const axiosInstance = useMemo(() => {
     const instance = axios.create({
       baseURL,
-      timeout: 20000,
+      timeout: 60000,
       headers: {
         'Content-Type': 'application/json',
       },
