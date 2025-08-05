@@ -6,10 +6,17 @@ import { UserProvider } from './context/UserProvider';
 import Login from './pages/Login';
 import ProtectedRoutes from './utils/ProtectedRoutes';
 import PublicRoutes from './utils/PublicRoutes';
+import { Button } from '@/components/ui/button';
+
 const App = () => {
   return (
     <UserProvider>
       <Router>
+        <div className="absolute right-4 top-4">
+          <Button className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+            Logout
+          </Button>
+        </div>
         <Routes>
           <Route element={<ProtectedRoutes />}>
             <Route path="/" element={<Home />} />

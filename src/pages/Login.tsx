@@ -1,5 +1,6 @@
 import React from 'react';
 import { useUserContext } from '../context/UserProvider';
+import { Button } from '@/components/ui/button';
 
 const Login:React.FC = () => {
  
@@ -9,11 +10,11 @@ const Login:React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-sm">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Login</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Connexion</h2>
         <form onSubmit={loginUser}>
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="username">
-              Username
+              Nom d'utilisateur
             </label>
             <input
               id="username"
@@ -25,7 +26,7 @@ const Login:React.FC = () => {
           </div>
           <div className="mb-6">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
-              Password
+              Mot de passe
             </label>
             <input
               id="password"
@@ -38,10 +39,11 @@ const Login:React.FC = () => {
           <div className="flex items-center justify-between">
             <button
               type="submit"
-              className="bg-primary text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              className="cursor-pointer bg-primary text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
             >
-              Login
+              Se connecter
             </button>
+            <Button className='cursor-pointer text-gray-700 hover:text-gray-500' variant="link">Mot de passe oublié?</Button>
           </div>
         </form>
       </div>

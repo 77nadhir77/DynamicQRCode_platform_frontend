@@ -118,7 +118,7 @@ const CodeDetails = () => {
   return (
     <div className="min-h-screen flex justify-center items-center bg-gray-100">
       <div
-        className="bg-white p-6 border rounded shadow relative
+        className="mt-10 bg-white p-6 border rounded shadow relative
     flex justify-between items-center
     max-sm:flex-col max-sm:w-full
     sm:max-w-screen-md "

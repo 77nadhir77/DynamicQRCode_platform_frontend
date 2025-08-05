@@ -150,7 +150,7 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="px-4 py-6 md:px-10 w-full h-full flex flex-col justify-center items-center gap-4">
+    <div className="mt-10 px-4 py-6 md:px-10 w-full h-full flex flex-col justify-center items-center gap-4">
       <div className="w-full max-w-[1200px]">
         <DataTable<Code, any>
           data={codes}
