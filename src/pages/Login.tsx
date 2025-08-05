@@ -1,10 +1,21 @@
 import React from 'react';
 import { useUserContext } from '../context/UserProvider';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
+import useAxios from '@/utils/useAxios';
 
 const Login:React.FC = () => {
  
   const {loginUser} = useUserContext();
+  const api = useAxios();
+
+  const handleEmailCode = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+
+
+
+  }
   
 
   return (
@@ -43,7 +54,7 @@ const Login:React.FC = () => {
             >
               Se connecter
             </button>
-            <Button className='cursor-pointer text-gray-700 hover:text-gray-500' variant="link">Mot de passe oublié?</Button>
+            <Button className='cursor-pointer text-gray-700 hover:text-gray-500' variant="link"><Link to='/codeverify'>Mot de passe oublié?</ Link></Button>
           </div>
         </form>
       </div>
