@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { use, useRef } from 'react';
 import { useState, useEffect } from 'react';
 import useAxios from '../utils/useAxios';
 import Code from '@/utils/Code';
@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link } from 'react-router-dom';
 import { Eye } from 'lucide-react';
+import { useUserContext } from '@/context/UserProvider';
 
 const columnHelper = createColumnHelper<Code>();
 
@@ -94,6 +95,7 @@ const Home = () => {
   const api = useAxios();
   const [open, setOpen] = useState(false);
   const [newLink, setNewLink] = useState<string>('');
+  const {user} = useUserContext();
 
   const handleCreate = () => {
     if (!newLink) return;
@@ -114,6 +116,7 @@ const Home = () => {
   };
 
   const getCodes = () => {
+
     api
       .get('/')
       .then((response) => {
