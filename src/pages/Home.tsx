@@ -95,7 +95,6 @@ const Home = () => {
   const api = useAxios();
   const [open, setOpen] = useState(false);
   const [newLink, setNewLink] = useState<string>('');
-  const {user} = useUserContext();
 
   const handleCreate = () => {
     if (!newLink) return;
