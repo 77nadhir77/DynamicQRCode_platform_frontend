@@ -17,9 +17,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Link } from 'react-router-dom';
+import { Link, redirect } from 'react-router-dom';
 import { Eye } from 'lucide-react';
 import { useUserContext } from '@/context/UserProvider';
+import QRCodeStyling from 'qr-code-styling';
+import { link } from 'fs';
 
 const columnHelper = createColumnHelper<Code>();
 
@@ -96,26 +98,57 @@ const Home = () => {
   const [open, setOpen] = useState(false);
   const [newLink, setNewLink] = useState<string>('');
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!newLink) return;
+
     setIsCreating(true);
-    api
-      .post('/api/create', { redirectUrl: newLink })
-      .then(() => {
-        getCodes(); // Refresh the list
-        setOpen(false); // Close dialog
-        setNewLink(''); // Reset input
-      })
-      .catch((err) => {
-        console.error('Failed to create QR Code', err);
-      })
-      .finally(() => {
-        setIsCreating(false);
+    // can also be 'svg'
+
+    try {
+      const res1 = await api.post('/api/create', {
+        redirectUrl: newLink,
       });
+      console.log('QR Code created:', res1.data);
+      const qrCode = new QRCodeStyling({
+        width: 1400,
+        height: 1400,
+        type: 'svg', // or 'svg'
+        data: import.meta.env.VITE_APP_QRCODE_LINK + '/' + res1.data.qrCodeId,
+        image:
+          'https://res.cloudinary.com/dpxpmkxhw/image/upload/v1754446721/uploads/uhalnszbafahgaw3lsic.png', // optional logo
+        dotsOptions: {
+          color: '#4B12BC',
+          type: 'rounded',
+        },
+        backgroundOptions: {
+          color: 'transparent',
+        },
+        imageOptions: {
+          crossOrigin: 'anonymous',
+        },
+      });
+      const blob = await qrCode.getRawData('png');
+      const formData = new FormData();
+      formData.append('file', blob as Blob, 'qrcode.png');
+      formData.append('qrCodeId', res1.data.qrCodeId);
+      const res2 = await api.post('/api/create/qrcodeimage', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data', // Important to set this for file uploads
+        },
+      });
+      console.log('QR Code image uploaded:', res2.data);
+
+      getCodes(); // Refresh the list
+      setOpen(false); // Close dialog
+      setNewLink(''); // Reset input
+    } catch (error) {
+      console.error('Failed to create QR Code', error);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const getCodes = () => {
-
     api
       .get('/')
       .then((response) => {
