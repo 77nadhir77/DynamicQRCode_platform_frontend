@@ -115,9 +115,9 @@ const Home = () => {
         type: 'svg', // or 'svg'
         data: import.meta.env.VITE_APP_QRCODE_LINK + '/' + res1.data.qrCodeId,
         image:
-          'https://res.cloudinary.com/dpxpmkxhw/image/upload/v1754446721/uploads/uhalnszbafahgaw3lsic.png', // optional logo
+          'https://res.cloudinary.com/dpxpmkxhw/image/upload/v1754582477/uploads/dylkxxi7zp9g8gwingsz.png', // optional logo
         dotsOptions: {
-          color: '#4B12BC',
+          color: '#222222',
           type: 'rounded',
         },
         backgroundOptions: {
