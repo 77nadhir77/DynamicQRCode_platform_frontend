@@ -53,6 +53,7 @@ interface DataTableProps<TData, TValue> {
   setNewLink: React.Dispatch<React.SetStateAction<string>>;
   isCreating: boolean;
   handleCreate: () => void;
+
 }
 
 export function DataTable<TData extends { id: number }, TValue>({
@@ -68,8 +69,12 @@ export function DataTable<TData extends { id: number }, TValue>({
   isCreating,
   handleCreate,
 }: DataTableProps<TData, TValue>) {
-  const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(5);
+
+  const [pagination, setPagination] = useState({
+    pageIndex: localStorage.getItem('pageIndex') ? Number(localStorage.getItem('pageIndex')) : 0,
+    pageSize:   localStorage.getItem('pageSize') ? Number(localStorage.getItem('pageSize')) : 5,
+  });
+
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
@@ -79,20 +84,11 @@ export function DataTable<TData extends { id: number }, TValue>({
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
     state: {
-      pagination: {
-        pageSize,
-        pageIndex,
-      },
+      pagination,
       columnFilters,
     },
-    onPaginationChange: (updater) => {
-      const next =
-        typeof updater === 'function'
-          ? updater({ pageIndex, pageSize })
-          : updater;
-      setPageIndex(next.pageIndex);
-      setPageSize(next.pageSize);
-    },
+    autoResetPageIndex: false,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     manualPagination: false,
@@ -104,6 +100,11 @@ export function DataTable<TData extends { id: number }, TValue>({
       onResetSelectionRequest(() => table.resetRowSelection());
     }
   }, [table, onResetSelectionRequest]);
+  // Expose the reset function to parent
+  useEffect(() => {
+    localStorage.setItem('pageIndex', String(pagination.pageIndex));
+    localStorage.setItem('pageSize', String(pagination.pageSize));
+  }, [pagination.pageIndex, pagination.pageSize]);
 
   return (
     <div className="space-y-6 w-full">
@@ -211,10 +212,10 @@ export function DataTable<TData extends { id: number }, TValue>({
         <div className="flex items-center space-x-2">
           <span className="text-sm">Lignes par page:</span>
           <select
-            value={pageSize}
+            value={pagination.pageSize}
             onChange={(e) => {
               table.setPageSize(Number(e.target.value));
-              setPageSize(Number(e.target.value));
+              setPagination({...pagination, pageSize: Number(e.target.value)});
             }}
             className="border rounded px-2 py-1 text-sm"
           >

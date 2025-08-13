@@ -3,69 +3,55 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
-import { useMemo } from 'react';
-
-let refreshTokenPromise: Promise<any> | null = null;
+import { useEffect } from 'react';
+import { User } from './User';
 
 const useAxios = (): AxiosInstance => {
   const baseURL = import.meta.env.VITE_APP_BACKEND_URL;
   const { authTokens, setUser, setAuthTokens } = useUserContext();
   const navigate = useNavigate();
 
-  const axiosInstance = useMemo(() => {
-    const instance = axios.create({
-      baseURL,
-      timeout: 60000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+  const axiosInstance = axios.create({
+    baseURL,
+    timeout: 60000,
+    headers: { Authorization: `Bearer ${authTokens?.accessToken}` },
+  });
+  useEffect(() => {
+  const requestIntercept = axiosInstance.interceptors.request.use(
+    async (req: InternalAxiosRequestConfig) => {
+      const user: User = jwtDecode<User>(String(authTokens?.accessToken));
 
-    instance.interceptors.request.use(async (req: InternalAxiosRequestConfig) => {
-      const user = authTokens?.accessToken ? jwtDecode(authTokens.accessToken) : null;
+      const isExpired = dayjs.unix(user.exp as number).isBefore(dayjs());
+      if (!isExpired) return req;
 
-      if (authTokens?.accessToken && user) {
-        const isExpired = dayjs.unix(user.exp as number).isBefore(dayjs());
+      try {
+        const tokenResponse = await axios.post(`${baseURL}/token`, {
+          refreshToken: authTokens!.refreshToken,
+        });
 
-        if (isExpired) {
-          // If a refresh is already happening, wait for it
-          if (!refreshTokenPromise) {
-            refreshTokenPromise = axios
-              .post(`${baseURL}/token`, { refreshToken: authTokens.refreshToken })
-              .then((res) => {
-                const newTokens = res.data;
-                localStorage.setItem('authTokens', JSON.stringify(newTokens));
-                setAuthTokens(newTokens);
-                return newTokens;
-              })
-              .catch((err) => {
-                localStorage.removeItem('authTokens');
-                setUser(null);
-                setAuthTokens(null);
-                navigate('/');
-                return Promise.reject(err);
-              })
-              .finally(() => {
-                refreshTokenPromise = null;
-              });
-          }
+        const newTokens = tokenResponse.data;
+        localStorage.setItem('authTokens', JSON.stringify(newTokens));
+        setAuthTokens(newTokens);
 
-          try {
-            const newTokens = await refreshTokenPromise;
-            req.headers.Authorization = `Bearer ${newTokens.accessToken}`;
-          } catch (err) {
-            return Promise.reject(err);
-          }
-        } else {
-          req.headers.Authorization = `Bearer ${authTokens.accessToken}`;
-        }
+        // ✅ Set new access token on request
+        req.headers.Authorization = `Bearer ${newTokens.accessToken}`;
+        return req;
+      } catch (err) {
+        console.error(err);
+        localStorage.removeItem('authTokens');
+        setUser(null);
+        setAuthTokens(null);
+        navigate('/');
+        return Promise.reject(err);
       }
+    }
+  );
 
-      return req;
-    });
+  return () => {
+    axiosInstance.interceptors.request.eject(requestIntercept);
+  };
+}, [authTokens]);
 
-    return instance;
-  }, [authTokens, baseURL, navigate, setAuthTokens, setUser]);
 
   return axiosInstance;
 };

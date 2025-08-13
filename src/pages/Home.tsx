@@ -94,6 +94,7 @@ const Home = () => {
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const resetSelectionRef = useRef<() => void>(() => {});
 
+
   const api = useAxios();
   const [open, setOpen] = useState(false);
   const [newLink, setNewLink] = useState<string>('');
@@ -115,9 +116,9 @@ const Home = () => {
         type: 'svg', // or 'svg'
         data: import.meta.env.VITE_APP_QRCODE_LINK + '/' + res1.data.qrCodeId,
         image:
-          'https://res.cloudinary.com/dpxpmkxhw/image/upload/v1754446721/uploads/uhalnszbafahgaw3lsic.png', // optional logo
+          'https://res.cloudinary.com/dpxpmkxhw/image/upload/v1754582477/uploads/dylkxxi7zp9g8gwingsz.png', // optional logo
         dotsOptions: {
-          color: '#4B12BC',
+          color: '#222222',
           type: 'rounded',
         },
         backgroundOptions: {
@@ -183,6 +184,7 @@ const Home = () => {
     console.log('useEffect called');
     getCodes();
   }, []);
+
 
   return (
     <div className="mt-10 px-4 py-6 md:px-10 w-full h-full flex flex-col justify-center items-center gap-4">

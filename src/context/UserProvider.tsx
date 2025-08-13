@@ -55,7 +55,7 @@ export const UserProvider:React.FC<UserProviderProps> = ({children}) => {
     }
 
     const logoutUser = () => {
-        localStorage.clear()
+        localStorage.removeItem('authTokens')
         setAuthTokens(null)
         setUser(null)
     }
