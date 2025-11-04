@@ -40,6 +40,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Label } from './ui/label';
+import { Spinner } from '@/pages/Spinner';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -49,11 +50,13 @@ interface DataTableProps<TData, TValue> {
   onResetSelectionRequest?: (resetFn: () => void) => void;
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  newLink: string;
-  setNewLink: React.Dispatch<React.SetStateAction<string>>;
+  links: string [];
+  setLinks: React.Dispatch<React.SetStateAction<string []>>;
+  linkStatuses: string[]; // 👈 ajouté
+  setLinkStatuses: React.Dispatch<React.SetStateAction<string[]>>; // 👈 ajouté
   isCreating: boolean;
   handleCreate: () => void;
-
+  onDownloadSelected?: (selectedIds: number[]) => void; // 👈 added
 }
 
 export function DataTable<TData extends { id: number }, TValue>({
@@ -64,19 +67,26 @@ export function DataTable<TData extends { id: number }, TValue>({
   onResetSelectionRequest,
   open,
   setOpen,
-  newLink,
-  setNewLink,
+  links,
+  setLinks,
+  linkStatuses,         // 👈 ajouté
+  setLinkStatuses,      // 👈 ajouté
   isCreating,
   handleCreate,
+  onDownloadSelected, // 👈 added
 }: DataTableProps<TData, TValue>) {
-
   const [pagination, setPagination] = useState({
-    pageIndex: localStorage.getItem('pageIndex') ? Number(localStorage.getItem('pageIndex')) : 0,
-    pageSize:   localStorage.getItem('pageSize') ? Number(localStorage.getItem('pageSize')) : 5,
+    pageIndex: localStorage.getItem('pageIndex')
+      ? Number(localStorage.getItem('pageIndex'))
+      : 0,
+    pageSize: localStorage.getItem('pageSize')
+      ? Number(localStorage.getItem('pageSize'))
+      : 5,
   });
 
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
 
   const table = useReactTable({
     data,
@@ -106,6 +116,11 @@ export function DataTable<TData extends { id: number }, TValue>({
     localStorage.setItem('pageSize', String(pagination.pageSize));
   }, [pagination.pageIndex, pagination.pageSize]);
 
+  const addLinks = () => {
+    setLinks((prevLinks) => [...prevLinks, '']);
+  }
+        
+
   return (
     <div className="space-y-6 w-full">
       <div className="justify-between items-center flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -123,7 +138,10 @@ export function DataTable<TData extends { id: number }, TValue>({
             className="sm:max-w-sm w-full"
           />
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (!isOpen) setLinks(['']);
+        }}>
           <DialogTrigger asChild>
             <Button className="w-full sm:w-auto">➕ Ajouter un QR Code</Button>
           </DialogTrigger>
@@ -135,18 +153,36 @@ export function DataTable<TData extends { id: number }, TValue>({
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="link" className="text-right">
-                  Lien de redirection
-                </Label>
-                <Input
-                  id="link"
-                  value={newLink}
-                  onChange={(e) => setNewLink(e.target.value)}
-                  className="col-span-3"
-                  placeholder="https://example.com"
-                />
-              </div>
+                <div className="flex justify-end">
+                <Button onClick={addLinks} className="w-[30px] h-[30px] flex items-center justify-center cursor-pointer">+</Button>
+                </div>
+              <div className="grid grid-cols-5 items-center gap-4">
+  {links.map((link, index) => (
+    <React.Fragment key={index}>
+      <Label htmlFor={`link-${index}`} className="text-right col-span-2">
+        Lien de redirection
+      </Label>
+
+      <div className="col-span-3 flex items-center gap-2">
+        <Input
+          id={`link-${index}`}
+          value={link}
+          onChange={(e) => {
+            const updatedLinks = [...links];
+            updatedLinks[index] = e.target.value;
+            setLinks(updatedLinks);
+          }}
+          className="flex-1"
+          placeholder="https://example.com"
+        />
+
+        {/* Spinner avec statut spécifique */}
+       <Spinner status={(linkStatuses[index] || "idle") as "idle" | "loading" | "success"} />
+      </div>
+    </React.Fragment>
+  ))}
+</div>
+
             </div>
             <DialogFooter>
               {isCreating ? (
@@ -215,7 +251,10 @@ export function DataTable<TData extends { id: number }, TValue>({
             value={pagination.pageSize}
             onChange={(e) => {
               table.setPageSize(Number(e.target.value));
-              setPagination({...pagination, pageSize: Number(e.target.value)});
+              setPagination({
+                ...pagination,
+                pageSize: Number(e.target.value),
+              });
             }}
             className="border rounded px-2 py-1 text-sm"
           >
@@ -250,43 +289,65 @@ export function DataTable<TData extends { id: number }, TValue>({
       </div>
 
       {/* Delete Button and Dialog */}
-      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <AlertDialogTrigger asChild>
-          <Button
-            variant="destructive"
-            className="w-full sm:w-auto"
-            disabled={table.getSelectedRowModel().rows.length === 0}
-          >
-            {isDeleting ? 'Suppression...' : 'Supprimer la sélection'} (
-            {table.getSelectedRowModel().rows.length})
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent className="w-[90vw] max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible et supprimera{' '}
-              {table.getSelectedRowModel().rows.length} élément(s).
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => table.resetRowSelection()}>
-              Annuler
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                const selectedIds = table
-                  .getSelectedRowModel()
-                  .rows.map((row) => row.original.id);
-                onDeleteSelected(selectedIds);
-                setDialogOpen(false);
-              }}
-            >
-              Confirmer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <div className="flex flex-wrap gap-2">
+  {/* Trigger for delete confirmation */}
+  <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+    <AlertDialogTrigger asChild>
+      <Button
+        variant="destructive"
+        className="w-full sm:w-auto"
+        disabled={table.getSelectedRowModel().rows.length === 0}
+      >
+        {isDeleting ? 'Suppression...' : 'Supprimer la sélection'} (
+        {table.getSelectedRowModel().rows.length})
+      </Button>
+    </AlertDialogTrigger>
+
+    <AlertDialogContent className="w-[90vw] max-w-md">
+      <AlertDialogHeader>
+        <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+        <AlertDialogDescription>
+          Cette action est irréversible et supprimera{' '}
+          {table.getSelectedRowModel().rows.length} élément(s).
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel onClick={() => table.resetRowSelection()}>
+          Annuler
+        </AlertDialogCancel>
+        <AlertDialogAction
+          onClick={() => {
+            const selectedIds = table
+              .getSelectedRowModel()
+              .rows.map((row) => row.original.id);
+            onDeleteSelected(selectedIds);
+            setDialogOpen(false);
+          }}
+        >
+          Confirmer
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+
+  {/* Download button should NOT be inside AlertDialogTrigger */}
+  <Button
+    variant="secondary"
+    className="w-full sm:w-auto"
+    disabled={table.getSelectedRowModel().rows.length === 0}
+    onClick={() => {
+      const selectedIds = table
+        .getSelectedRowModel()
+        .rows.map((row) => row.original.id);
+      if (onDownloadSelected) {
+        onDownloadSelected(selectedIds);
+      }
+    }}
+  >
+    Télécharger la sélection ({table.getSelectedRowModel().rows.length})
+  </Button>
+</div>
+
     </div>
   );
 }

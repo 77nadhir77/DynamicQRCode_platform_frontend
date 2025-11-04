@@ -5,6 +5,7 @@ import Code from '@/utils/Code';
 import { DataTable } from '@/components/data-table';
 import { createColumnHelper } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
+
 import {
   Dialog,
   DialogTrigger,
@@ -22,6 +23,9 @@ import { Eye } from 'lucide-react';
 import { useUserContext } from '@/context/UserProvider';
 import QRCodeStyling from 'qr-code-styling';
 import { link } from 'fs';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+import Swal from 'sweetalert2';
 
 const columnHelper = createColumnHelper<Code>();
 
@@ -94,60 +98,149 @@ const Home = () => {
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const resetSelectionRef = useRef<() => void>(() => {});
 
-
   const api = useAxios();
   const [open, setOpen] = useState(false);
-  const [newLink, setNewLink] = useState<string>('');
+  const [links, setLinks] = useState<Array<string>>(['']);
+  const [linkStatuses, setLinkStatuses] = useState<string[]>([]); // 'idle' | 'loading' | 'success'
 
-  const handleCreate = async () => {
-    if (!newLink) return;
 
-    setIsCreating(true);
-    // can also be 'svg'
+  // const handleCreate = async () => {
+  //   if (links.length === 1 && links[0] === '') return;
 
-    try {
-      const res1 = await api.post('/api/create', {
-        redirectUrl: newLink,
-      });
-      console.log('QR Code created:', res1.data);
-      const qrCode = new QRCodeStyling({
-        width: 1400,
-        height: 1400,
-        type: 'svg', // or 'svg'
-        data: import.meta.env.VITE_APP_QRCODE_LINK + '/' + res1.data.qrCodeId,
-        image:
-          'https://res.cloudinary.com/dpxpmkxhw/image/upload/v1754582477/uploads/dylkxxi7zp9g8gwingsz.png', // optional logo
-        dotsOptions: {
-          color: '#222222',
-          type: 'rounded',
-        },
-        backgroundOptions: {
-          color: 'transparent',
-        },
-        imageOptions: {
-          crossOrigin: 'anonymous',
-        },
-      });
-      const blob = await qrCode.getRawData('png');
-      const formData = new FormData();
-      formData.append('file', blob as Blob, 'qrcode.png');
-      formData.append('qrCodeId', res1.data.qrCodeId);
-      const res2 = await api.post('/api/create/qrcodeimage', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data', // Important to set this for file uploads
-        },
-      });
-      console.log('QR Code image uploaded:', res2.data);
+  //   setIsCreating(true);
+  //   // can also be 'svg'
 
-      getCodes(); // Refresh the list
-      setOpen(false); // Close dialog
-      setNewLink(''); // Reset input
-    } catch (error) {
-      console.error('Failed to create QR Code', error);
-    } finally {
-      setIsCreating(false);
+  //   try {
+  //     const res1 = await api.post('/api/create', {
+  //       redirectUrl: links,
+  //     });
+  //     console.log('QR Code created:', res1.data);
+  //     const qrCode = new QRCodeStyling({
+  //       width: 1400,
+  //       height: 1400,
+  //       type: 'svg', // or 'svg'
+  //       data: import.meta.env.VITE_APP_QRCODE_LINK + '/' + res1.data.qrCodeId,
+  //       image:
+  //         'https://res.cloudinary.com/dpxpmkxhw/image/upload/v1754582477/uploads/dylkxxi7zp9g8gwingsz.png', // optional logo
+  //       dotsOptions: {
+  //         color: '#222222',
+  //         type: 'rounded',
+  //       },
+  //       backgroundOptions: {
+  //         color: 'transparent',
+  //       },
+  //       imageOptions: {
+  //         crossOrigin: 'anonymous',
+  //       },
+  //     });
+  //     const blob = await qrCode.getRawData('png');
+  //     const formData = new FormData();
+  //     formData.append('file', blob as Blob, 'qrcode.png');
+  //     formData.append('qrCodeId', res1.data.qrCodeId);
+  //     const res2 = await api.post('/api/create/qrcodeimage', formData, {
+  //       headers: {
+  //         'Content-Type': 'multipart/form-data', // Important to set this for file uploads
+  //       },
+  //     });
+  //     console.log('QR Code image uploaded:', res2.data);
+
+  //     getCodes(); // Refresh the list
+  //     setOpen(false); // Close dialog
+  //     setLinks(['']); // Reset input
+  //   } catch (error) {
+  //     console.error('Failed to create QR Code', error);
+  //   } finally {
+  //     setIsCreating(false);
+  //   }
+  // };
+
+
+const handleCreate = async () => {
+  const trimmedLinks = links.map(link => link.trim());
+
+  // 🔹 Vérifie s'il y a au moins un lien non vide
+  const hasValidLinks = trimmedLinks.some(link => link !== "");
+  if (!hasValidLinks) {
+    await Swal.fire({
+      icon: "warning",
+      title: "Aucun lien valide",
+      text: "Veuillez saisir au moins un lien non vide.",
+    });
+    return;
+  }
+
+  // 🔹 Initialise les statuts :
+  // - "loading" pour les liens valides
+  // - "" (vide) pour les liens vides
+  const initialStatuses = trimmedLinks.map(link =>
+    link === "" ? "" : "loading"
+  );
+  setLinkStatuses(initialStatuses);
+  setIsCreating(true);
+
+  try {
+    const validLinks = trimmedLinks.filter(link => link !== "");
+    const res1 = await api.post("/api/create", { redirectUrl: validLinks });
+
+    let validIndex = 0;
+    for (let i = 0; i < trimmedLinks.length; i++) {
+      // 🔸 Ignore les liens vides
+      if (trimmedLinks[i] === "") continue;
+
+      const qr = res1.data.qrCodes[validIndex++];
+      if (!qr) continue;
+
+      try {
+        const qrCode = new QRCodeStyling({
+          width: 1400,
+          height: 1400,
+          type: "svg",
+          data: `${import.meta.env.VITE_APP_QRCODE_LINK}/${qr.id}`,
+          image:
+            "https://res.cloudinary.com/dpxpmkxhw/image/upload/v1754582477/uploads/dylkxxi7zp9g8gwingsz.png",
+          dotsOptions: { color: "#222222", type: "rounded" },
+          backgroundOptions: { color: "transparent" },
+          imageOptions: { crossOrigin: "anonymous" },
+        });
+
+        const blob = await qrCode.getRawData("png");
+        const formData = new FormData();
+        formData.append("file", blob as Blob, `qrcode_${qr.id}.png`);
+        formData.append("qrCodeId", qr.id);
+
+        await api.post("/api/create/qrcodeimage", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        // ✅ succès pour ce lien
+        setLinkStatuses(prev => {
+          const updated = [...prev];
+          updated[i] = "success";
+          return updated;
+        });
+      } catch (err) {
+        console.error("Erreur QR:", err);
+        // ❌ échec pour ce lien
+        setLinkStatuses(prev => {
+          const updated = [...prev];
+          updated[i] = "error";
+          return updated;
+        });
+      }
     }
-  };
+
+    getCodes();
+    setLinkStatuses([]); // reset
+    setOpen(false);
+    setLinks([""]);
+  } catch (error) {
+    console.error("Failed to create QR Codes", error);
+  } finally {
+    setIsCreating(false);
+  }
+};
+
+
 
   const getCodes = () => {
     api
@@ -159,6 +252,33 @@ const Home = () => {
       .catch((error) => {
         console.error('Error fetching codes:', error);
       });
+  };
+
+  
+
+  const handleDownloadSelected = async (selectedIds: number[]) => {
+    try {
+      const zip = new JSZip();
+
+      // Fetch QR codes for each selected ID
+      for (const id of selectedIds) {
+        const res = await api.get(`/api/qrcode/${id}`);
+        const { image } = res.data;
+
+        // Fetch image as blob
+        const imgRes = await fetch(image);
+        const blob = await imgRes.blob();
+
+        // Add to zip
+        zip.file(`qr-code-${id}.png`, blob);
+      }
+
+      // Generate ZIP and download
+      const content = await zip.generateAsync({ type: 'blob' });
+      saveAs(content, 'qrcodes.zip');
+    } catch (error) {
+      console.error('Error downloading selected QR codes:', error);
+    }
   };
 
   const handleDeleteSelected = (selectedIds: number[]) => {
@@ -185,7 +305,6 @@ const Home = () => {
     getCodes();
   }, []);
 
-
   return (
     <div className="mt-10 px-4 py-6 md:px-10 w-full h-full flex flex-col justify-center items-center gap-4">
       <div className="w-full max-w-[1200px]">
@@ -199,10 +318,13 @@ const Home = () => {
           }}
           open={open}
           setOpen={setOpen}
-          newLink={newLink}
-          setNewLink={setNewLink}
+          links={links}
+          setLinks={setLinks}
+          linkStatuses={linkStatuses}          // 👈 ajouté ici
+          setLinkStatuses={setLinkStatuses} 
           isCreating={isCreating}
           handleCreate={handleCreate}
+          onDownloadSelected={handleDownloadSelected} // 👈 added
         />
       </div>
     </div>
