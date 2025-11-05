@@ -6,7 +6,7 @@ const Logout = () => {
   const { logoutUser, user } = useUserContext();
 
   return user ? (
-    <div className="absolute right-4 top-4">
+    <div className="absolute right-4 top-8">
       <Button
         className="cursor-pointer bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
         onClick={logoutUser}
