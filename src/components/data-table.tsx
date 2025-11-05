@@ -57,6 +57,7 @@ interface DataTableProps<TData, TValue> {
   isCreating: boolean;
   handleCreate: () => void;
   onDownloadSelected?: (selectedIds: number[]) => void; // 👈 added
+
 }
 
 export function DataTable<TData extends { id: number }, TValue>({
@@ -81,7 +82,7 @@ export function DataTable<TData extends { id: number }, TValue>({
       : 0,
     pageSize: localStorage.getItem('pageSize')
       ? Number(localStorage.getItem('pageSize'))
-      : 5,
+      : 5
   });
 
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
@@ -115,6 +116,11 @@ export function DataTable<TData extends { id: number }, TValue>({
     localStorage.setItem('pageIndex', String(pagination.pageIndex));
     localStorage.setItem('pageSize', String(pagination.pageSize));
   }, [pagination.pageIndex, pagination.pageSize]);
+
+
+  useEffect(() => {
+    table.setPageIndex(0); // Reset to first page when page size changes
+  }, [pagination.pageSize]);
 
   const addLinks = () => {
     setLinks((prevLinks) => [...prevLinks, '']);
@@ -251,6 +257,10 @@ export function DataTable<TData extends { id: number }, TValue>({
             value={pagination.pageSize}
             onChange={(e) => {
               table.setPageSize(Number(e.target.value));
+              setPagination({
+                ...pagination,
+                pageSize: Number(e.target.value),
+              });
               setPagination({
                 ...pagination,
                 pageSize: Number(e.target.value),
