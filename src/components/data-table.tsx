@@ -115,9 +115,6 @@ export function DataTable<TData extends { id: number }, TValue>({
     localStorage.setItem('pageSize', String(pagination.pageSize));
   }, [pagination.pageIndex, pagination.pageSize]);
 
-  useEffect(() => {
-    table.setPageIndex(0); // Reset to first page when page size changes
-  }, [pagination.pageSize]);
 
   const addLinks = () => {
     setLinks((prevLinks) => [...prevLinks, '']);
