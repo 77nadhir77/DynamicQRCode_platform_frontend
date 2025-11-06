@@ -5,23 +5,17 @@ import Code from '@/utils/Code';
 import { DataTable } from '@/components/data-table';
 import { createColumnHelper } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
+import Logout from '@/components/Logout'; // ✅ On importe ton composant Logout
+
 import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Link, redirect } from 'react-router-dom';
+  Button,
+} from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 import { Eye } from 'lucide-react';
-import { useUserContext } from '@/context/UserProvider';
 import QRCodeStyling from 'qr-code-styling';
-import { link } from 'fs';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+import Swal from 'sweetalert2';
 
 const columnHelper = createColumnHelper<Code>();
 
@@ -79,7 +73,7 @@ const columns = [
         <Button
           variant="outline"
           size="icon"
-          className="bg-green-500 hover:bg-green-600 text-white rounded p-2"
+          className="bg-green-500 hover:bg-green-600 text-white rounded p-2 cursor-pointer"
         >
           <Eye className="h-4 w-4" />
         </Button>
@@ -94,56 +88,83 @@ const Home = () => {
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const resetSelectionRef = useRef<() => void>(() => {});
 
-
   const api = useAxios();
   const [open, setOpen] = useState(false);
-  const [newLink, setNewLink] = useState<string>('');
+  const [links, setLinks] = useState<Array<string>>(['']);
+  const [linkStatuses, setLinkStatuses] = useState<string[]>([]);
 
   const handleCreate = async () => {
-    if (!newLink) return;
+    const trimmedLinks = links.map((link) => link.trim());
+    const hasValidLinks = trimmedLinks.some((link) => link !== '');
+    if (!hasValidLinks) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Aucun lien valide',
+        text: 'Veuillez saisir au moins un lien non vide.',
+      });
+      return;
+    }
 
+    const initialStatuses = trimmedLinks.map((link) =>
+      link === '' ? '' : 'loading'
+    );
+    setLinkStatuses(initialStatuses);
     setIsCreating(true);
-    // can also be 'svg'
 
     try {
-      const res1 = await api.post('/api/create', {
-        redirectUrl: newLink,
-      });
-      console.log('QR Code created:', res1.data);
-      const qrCode = new QRCodeStyling({
-        width: 1400,
-        height: 1400,
-        type: 'svg', // or 'svg'
-        data: import.meta.env.VITE_APP_QRCODE_LINK + '/' + res1.data.qrCodeId,
-        image:
-          'https://res.cloudinary.com/dpxpmkxhw/image/upload/v1754582477/uploads/dylkxxi7zp9g8gwingsz.png', // optional logo
-        dotsOptions: {
-          color: '#222222',
-          type: 'rounded',
-        },
-        backgroundOptions: {
-          color: 'transparent',
-        },
-        imageOptions: {
-          crossOrigin: 'anonymous',
-        },
-      });
-      const blob = await qrCode.getRawData('png');
-      const formData = new FormData();
-      formData.append('file', blob as Blob, 'qrcode.png');
-      formData.append('qrCodeId', res1.data.qrCodeId);
-      const res2 = await api.post('/api/create/qrcodeimage', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data', // Important to set this for file uploads
-        },
-      });
-      console.log('QR Code image uploaded:', res2.data);
+      const validLinks = trimmedLinks.filter((link) => link !== '');
+      const res1 = await api.post('/api/create', { redirectUrl: validLinks });
 
-      getCodes(); // Refresh the list
-      setOpen(false); // Close dialog
-      setNewLink(''); // Reset input
+      let validIndex = 0;
+      for (let i = 0; i < trimmedLinks.length; i++) {
+        if (trimmedLinks[i] === '') continue;
+
+        const qr = res1.data.qrCodes[validIndex++];
+        if (!qr) continue;
+
+        try {
+          const qrCode = new QRCodeStyling({
+            width: 1400,
+            height: 1400,
+            type: 'svg',
+            data: `${import.meta.env.VITE_APP_QRCODE_LINK}/${qr.id}`,
+            image:
+              'https://res.cloudinary.com/dpxpmkxhw/image/upload/v1754582477/uploads/dylkxxi7zp9g8gwingsz.png',
+            dotsOptions: { color: '#222222', type: 'rounded' },
+            backgroundOptions: { color: 'transparent' },
+            imageOptions: { crossOrigin: 'anonymous' },
+          });
+
+          const blob = await qrCode.getRawData('png');
+          const formData = new FormData();
+          formData.append('file', blob as Blob, `qrcode_${qr.id}.png`);
+          formData.append('qrCodeId', qr.id);
+
+          await api.post('/api/create/qrcodeimage', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+
+          setLinkStatuses((prev) => {
+            const updated = [...prev];
+            updated[i] = 'success';
+            return updated;
+          });
+        } catch (err) {
+          console.error('Erreur QR:', err);
+          setLinkStatuses((prev) => {
+            const updated = [...prev];
+            updated[i] = 'error';
+            return updated;
+          });
+        }
+      }
+
+      getCodes();
+      setLinkStatuses([]);
+      setOpen(false);
+      setLinks(['']);
     } catch (error) {
-      console.error('Failed to create QR Code', error);
+      console.error('Failed to create QR Codes', error);
     } finally {
       setIsCreating(false);
     }
@@ -154,23 +175,37 @@ const Home = () => {
       .get('/')
       .then((response) => {
         setCodes(response.data.QRCodes);
-        console.log('Codes fetched:', response.data.QRCodes);
       })
       .catch((error) => {
         console.error('Error fetching codes:', error);
       });
   };
+  
+
+  const handleDownloadSelected = async (selectedIds: number[]) => {
+    try {
+      const zip = new JSZip();
+      for (const id of selectedIds) {
+        const res = await api.get(`/api/qrcode/${id}`);
+        const { image } = res.data;
+        const imgRes = await fetch(image);
+        const blob = await imgRes.blob();
+        zip.file(`qr-code-${id}.png`, blob);
+      }
+      const content = await zip.generateAsync({ type: 'blob' });
+      saveAs(content, 'qrcodes.zip');
+    } catch (error) {
+      console.error('Error downloading selected QR codes:', error);
+    }
+  };
 
   const handleDeleteSelected = (selectedIds: number[]) => {
-    // Optional: Call your API to delete by IDs
     setIsDeleting(true);
     api
-      .delete('/api/delete', {
-        data: { selectedIds: selectedIds },
-      })
+      .delete('/api/delete', { data: { selectedIds } })
       .then(() => {
         getCodes();
-        resetSelectionRef.current(); // Reset selection after deletion
+        resetSelectionRef.current();
       })
       .catch((error) => {
         console.error('Error deleting codes:', error);
@@ -181,31 +216,36 @@ const Home = () => {
   };
 
   useEffect(() => {
-    console.log('useEffect called');
     getCodes();
   }, []);
 
-
   return (
-    <div className="mt-10 px-4 py-6 md:px-10 w-full h-full flex flex-col justify-center items-center gap-4">
-      <div className="w-full max-w-[1200px]">
-        <DataTable<Code, any>
-          data={codes}
-          columns={columns}
-          onDeleteSelected={handleDeleteSelected}
-          isDeleting={isDeleting}
-          onResetSelectionRequest={(resetFn) => {
-            resetSelectionRef.current = resetFn;
-          }}
-          open={open}
-          setOpen={setOpen}
-          newLink={newLink}
-          setNewLink={setNewLink}
-          isCreating={isCreating}
-          handleCreate={handleCreate}
-        />
+    <>
+
+      {/* 📄 Contenu principal */}
+      <div className="mt-30 px-4 py-6 md:px-10 w-full h-full flex flex-col justify-center items-center gap-4">
+        <div className="w-full max-w-[1200px]">
+          <DataTable<Code, any>
+            data={codes}
+            columns={columns}
+            onDeleteSelected={handleDeleteSelected}
+            isDeleting={isDeleting}
+            onResetSelectionRequest={(resetFn) => {
+              resetSelectionRef.current = resetFn;
+            }}
+            open={open}
+            setOpen={setOpen}
+            links={links}
+            setLinks={setLinks}
+            linkStatuses={linkStatuses}
+            setLinkStatuses={setLinkStatuses}
+            isCreating={isCreating}
+            handleCreate={handleCreate}
+            onDownloadSelected={handleDownloadSelected}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

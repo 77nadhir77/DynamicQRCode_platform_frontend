@@ -6,21 +6,23 @@ import { UserProvider } from './context/UserProvider';
 import Login from './pages/Login';
 import ProtectedRoutes from './utils/ProtectedRoutes';
 import PublicRoutes from './utils/PublicRoutes';
-import Logout from './components/Logout';
 import VerifyCodePage from './pages/VerifyCodePage';
+import Navbar from '@/components/Navbar';
 
 const App = () => {
-
-
   return (
     <UserProvider>
       <Router>
-        <Logout />
+        <Navbar />
         <Routes>
+          {/* 🔒 Routes protégées */}
           <Route element={<ProtectedRoutes />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/qrcode/:id" element={<CodeDetails />} />
+              <Route path="/" element={<Home />} />
+              <Route path="/qrcode/:id" element={<CodeDetails />} />
+          
           </Route>
+
+          {/* 🌐 Routes publiques */}
           <Route element={<PublicRoutes />}>
             <Route path="/login" element={<Login />} />
             <Route path="/codeverify" element={<VerifyCodePage />} />
