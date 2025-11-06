@@ -50,14 +50,13 @@ interface DataTableProps<TData, TValue> {
   onResetSelectionRequest?: (resetFn: () => void) => void;
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  links: string [];
-  setLinks: React.Dispatch<React.SetStateAction<string []>>;
+  links: string[];
+  setLinks: React.Dispatch<React.SetStateAction<string[]>>;
   linkStatuses: string[]; // 👈 ajouté
   setLinkStatuses: React.Dispatch<React.SetStateAction<string[]>>; // 👈 ajouté
   isCreating: boolean;
   handleCreate: () => void;
   onDownloadSelected?: (selectedIds: number[]) => void; // 👈 added
-
 }
 
 export function DataTable<TData extends { id: number }, TValue>({
@@ -70,8 +69,8 @@ export function DataTable<TData extends { id: number }, TValue>({
   setOpen,
   links,
   setLinks,
-  linkStatuses,         // 👈 ajouté
-  setLinkStatuses,      // 👈 ajouté
+  linkStatuses, // 👈 ajouté
+  setLinkStatuses, // 👈 ajouté
   isCreating,
   handleCreate,
   onDownloadSelected, // 👈 added
@@ -82,12 +81,11 @@ export function DataTable<TData extends { id: number }, TValue>({
       : 0,
     pageSize: localStorage.getItem('pageSize')
       ? Number(localStorage.getItem('pageSize'))
-      : 5
+      : 5,
   });
 
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-
 
   const table = useReactTable({
     data,
@@ -117,15 +115,13 @@ export function DataTable<TData extends { id: number }, TValue>({
     localStorage.setItem('pageSize', String(pagination.pageSize));
   }, [pagination.pageIndex, pagination.pageSize]);
 
-
   useEffect(() => {
     table.setPageIndex(0); // Reset to first page when page size changes
   }, [pagination.pageSize]);
 
   const addLinks = () => {
     setLinks((prevLinks) => [...prevLinks, '']);
-  }
-        
+  };
 
   return (
     <div className="space-y-6 w-full">
@@ -144,14 +140,22 @@ export function DataTable<TData extends { id: number }, TValue>({
             className="sm:max-w-sm w-full"
           />
         </div>
-        <Dialog open={open} onOpenChange={(isOpen) => {
-          setOpen(isOpen);
-          if (!isOpen) setLinks(['']);
-        }}>
+        <Dialog
+          open={open}
+          onOpenChange={(isOpen) => {
+            setOpen(isOpen);
+            if (!isOpen) setLinks(['']);
+          }}
+        >
           <DialogTrigger asChild>
-            <Button className="w-full sm:w-auto">➕ Ajouter un QR Code</Button>
+            <Button className="w-full sm:w-auto cursor-pointer">
+              ➕ Ajouter un QR Code
+            </Button>
           </DialogTrigger>
-          <DialogContent className="w-[90vw] max-w-md">
+          <DialogContent
+            className="w-[90vw] max-w-md"
+            onInteractOutside={(e) => e.preventDefault()}
+          >
             <DialogHeader>
               <DialogTitle>Creation d'un QR Code</DialogTitle>
               <DialogDescription>
@@ -159,42 +163,58 @@ export function DataTable<TData extends { id: number }, TValue>({
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-                <div className="flex justify-end">
-                <Button onClick={addLinks} className="w-[30px] h-[30px] flex items-center justify-center cursor-pointer">+</Button>
-                </div>
+              <div className="flex justify-end">
+                <Button
+                  onClick={addLinks}
+                  className="w-[30px] h-[30px] flex items-center justify-center cursor-pointer"
+                >
+                  +
+                </Button>
+              </div>
               <div className="grid grid-cols-5 items-center gap-4">
-  {links.map((link, index) => (
-    <React.Fragment key={index}>
-      <Label htmlFor={`link-${index}`} className="text-right col-span-2">
-        Lien de redirection
-      </Label>
+                {links.map((link, index) => (
+                  <React.Fragment key={index}>
+                    <Label
+                      htmlFor={`link-${index}`}
+                      className="text-right col-span-2"
+                    >
+                      Lien de redirection
+                    </Label>
 
-      <div className="col-span-3 flex items-center gap-2">
-        <Input
-          id={`link-${index}`}
-          value={link}
-          onChange={(e) => {
-            const updatedLinks = [...links];
-            updatedLinks[index] = e.target.value;
-            setLinks(updatedLinks);
-          }}
-          className="flex-1"
-          placeholder="https://example.com"
-        />
+                    <div className="col-span-3 flex items-center gap-2">
+                      <Input
+                        id={`link-${index}`}
+                        value={link}
+                        onChange={(e) => {
+                          const updatedLinks = [...links];
+                          updatedLinks[index] = e.target.value;
+                          setLinks(updatedLinks);
+                        }}
+                        className="flex-1"
+                        placeholder="https://example.com"
+                      />
 
-        {/* Spinner avec statut spécifique */}
-       <Spinner status={(linkStatuses[index] || "idle") as "idle" | "loading" | "success"} />
-      </div>
-    </React.Fragment>
-  ))}
-</div>
-
+                      {/* Spinner avec statut spécifique */}
+                      <Spinner
+                        status={
+                          (linkStatuses[index] || 'idle') as
+                            | 'idle'
+                            | 'loading'
+                            | 'success'
+                        }
+                      />
+                    </div>
+                  </React.Fragment>
+                ))}
+              </div>
             </div>
             <DialogFooter>
               {isCreating ? (
                 <Button disabled>Chargment ...</Button>
               ) : (
-                <Button onClick={handleCreate}>Ajouter</Button>
+                <Button className="cursor-pointer" onClick={handleCreate}>
+                  Ajouter
+                </Button>
               )}
             </DialogFooter>
           </DialogContent>
@@ -241,7 +261,7 @@ export function DataTable<TData extends { id: number }, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  chargement...
                 </TableCell>
               </TableRow>
             )}
@@ -300,64 +320,67 @@ export function DataTable<TData extends { id: number }, TValue>({
 
       {/* Delete Button and Dialog */}
       <div className="flex flex-wrap gap-2">
-  {/* Trigger for delete confirmation */}
-  <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-    <AlertDialogTrigger asChild>
-      <Button
-        variant="destructive"
-        className="w-full sm:w-auto"
-        disabled={table.getSelectedRowModel().rows.length === 0}
-      >
-        {isDeleting ? 'Suppression...' : 'Supprimer la sélection'} (
-        {table.getSelectedRowModel().rows.length})
-      </Button>
-    </AlertDialogTrigger>
+        {/* Trigger for delete confirmation */}
+        <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="destructive"
+              className="w-full sm:w-auto cursor-pointer"
+              disabled={table.getSelectedRowModel().rows.length === 0}
+            >
+              {isDeleting ? 'Suppression...' : 'Supprimer la sélection'} (
+              {table.getSelectedRowModel().rows.length})
+            </Button>
+          </AlertDialogTrigger>
 
-    <AlertDialogContent className="w-[90vw] max-w-md">
-      <AlertDialogHeader>
-        <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-        <AlertDialogDescription>
-          Cette action est irréversible et supprimera{' '}
-          {table.getSelectedRowModel().rows.length} élément(s).
-        </AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogCancel onClick={() => table.resetRowSelection()}>
-          Annuler
-        </AlertDialogCancel>
-        <AlertDialogAction
+          <AlertDialogContent className="w-[90vw] max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action est irréversible et supprimera{' '}
+                {table.getSelectedRowModel().rows.length} élément(s).
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                className="cursor-pointer"
+                onClick={() => table.resetRowSelection()}
+              >
+                Annuler
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="cursor-pointer"
+                onClick={() => {
+                  const selectedIds = table
+                    .getSelectedRowModel()
+                    .rows.map((row) => row.original.id);
+                  onDeleteSelected(selectedIds);
+                  setDialogOpen(false);
+                }}
+              >
+                Confirmer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Download button should NOT be inside AlertDialogTrigger */}
+        <Button
+          variant="secondary"
+          className="w-full sm:w-auto cursor-pointer"
+          disabled={table.getSelectedRowModel().rows.length === 0}
           onClick={() => {
             const selectedIds = table
               .getSelectedRowModel()
               .rows.map((row) => row.original.id);
-            onDeleteSelected(selectedIds);
-            setDialogOpen(false);
+            if (onDownloadSelected) {
+              onDownloadSelected(selectedIds);
+            }
           }}
         >
-          Confirmer
-        </AlertDialogAction>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  </AlertDialog>
-
-  {/* Download button should NOT be inside AlertDialogTrigger */}
-  <Button
-    variant="secondary"
-    className="w-full sm:w-auto"
-    disabled={table.getSelectedRowModel().rows.length === 0}
-    onClick={() => {
-      const selectedIds = table
-        .getSelectedRowModel()
-        .rows.map((row) => row.original.id);
-      if (onDownloadSelected) {
-        onDownloadSelected(selectedIds);
-      }
-    }}
-  >
-    Télécharger la sélection ({table.getSelectedRowModel().rows.length})
-  </Button>
-</div>
-
+          Télécharger la sélection ({table.getSelectedRowModel().rows.length})
+        </Button>
+      </div>
     </div>
   );
 }
