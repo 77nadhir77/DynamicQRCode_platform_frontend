@@ -116,8 +116,17 @@ export function DataTable<TData extends { id: number }, TValue>({
     localStorage.setItem('pageSize', String(pagination.pageSize));
   }, [pagination.pageIndex, pagination.pageSize]);
 
+  useEffect(() => {
+    table.setPageIndex(0); // Reset to first page when page size changes
+  }, [pagination.pageSize]);
+
   const addLinks = () => {
     setLinks((prevLinks) => [...prevLinks, '']);
+  }
+
+  const removeLink = (index: number) => {
+    setLinks((prevLinks) => prevLinks.filter((_, i) => i !== index));
+    setLinkStatuses((prevStatuses) => prevStatuses.filter((_, i) => i !== index));
   }
         
 
@@ -145,7 +154,7 @@ export function DataTable<TData extends { id: number }, TValue>({
           <DialogTrigger asChild>
             <Button className="w-full sm:w-auto">➕ Ajouter un QR Code</Button>
           </DialogTrigger>
-          <DialogContent className="w-[90vw] max-w-md">
+          <DialogContent className="w-[90vw] max-w-md max-h-[80vh] overflow-auto">
             <DialogHeader>
               <DialogTitle>Creation d'un QR Code</DialogTitle>
               <DialogDescription>
@@ -175,6 +184,15 @@ export function DataTable<TData extends { id: number }, TValue>({
           className="flex-1"
           placeholder="https://example.com"
         />
+         <Button
+                variant="ghost"
+                size="sm"
+                aria-label={`Supprimer le lien ${index + 1}`}
+                onClick={() => removeLink(index)}
+                className="ml-2"
+          >
+            🗑
+          </Button>
 
         {/* Spinner avec statut spécifique */}
        <Spinner status={(linkStatuses[index] || "idle") as "idle" | "loading" | "success"} />
